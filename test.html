@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>轻量级音频编辑器 - 界面原型</title>
+    <style>
+        :root {
+            --bg-main: #1a1b26;
+            --bg-panel: #24283b;
+            --bg-panel-alt: #1d2132;
+            --bg-panel-soft: #171b29;
+            --border: #343a55;
+            --text-main: #ecf0ff;
+            --text-muted: #8b93b7;
+            --accent: #00d0bf;
+            --accent-2: #00e5ff;
+            --shadow: 0 18px 40px rgba(0, 0, 0, 0.24);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+            background: var(--bg-main);
+            color: var(--text-main);
+        }
+
+        body {
+            min-width: 920px;
+        }
+
+        button,
+        input {
+            font: inherit;
+        }
+
+        .app-shell {
+            display: grid;
+            grid-template-rows: 68px minmax(0, 1fr) 104px;
+            width: 100%;
+            height: 100vh;
+            background:
+                radial-gradient(circle at top right, rgba(0, 229, 255, 0.06), transparent 28%),
+                radial-gradient(circle at bottom left, rgba(0, 208, 191, 0.06), transparent 30%),
+                var(--bg-main);
+        }
+
+        .top-bar {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 20px;
+            padding: 0 24px;
+            background: rgba(36, 40, 59, 0.92);
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(10px);
+        }
+
+        .brand {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .brand-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 0.4px;
+        }
+
+        .brand-title::before {
+            content: "";
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            box-shadow: 0 0 18px rgba(0, 229, 255, 0.55);
+        }
+
+        .brand-subtitle {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .file-summary {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+            padding: 10px 14px;
+            border: 1px solid rgba(0, 229, 255, 0.14);
+            border-radius: 14px;
+            background: rgba(0, 229, 255, 0.05);
+        }
+
+        .file-summary-label {
+            flex-shrink: 0;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent-2);
+            background: rgba(0, 229, 255, 0.08);
+        }
+
+        .file-summary-text {
+            min-width: 0;
+            font-size: 13px;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .action-button {
+            height: 42px;
+            border: 1px solid transparent;
+            border-radius: 12px;
+            padding: 0 16px;
+            cursor: pointer;
+            transition: 0.2s ease;
+        }
+
+        .action-button:hover {
+            transform: translateY(-1px);
+        }
+
+        .action-button:active {
+            transform: translateY(0);
+        }
+
+        .action-button.primary {
+            color: #04161a;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            box-shadow: 0 10px 24px rgba(0, 208, 191, 0.18);
+        }
+
+        .action-button.secondary {
+            color: var(--text-main);
+            background: #1f2436;
+            border-color: var(--border);
+        }
+
+        .action-button.secondary:hover {
+            border-color: rgba(0, 229, 255, 0.32);
+            color: var(--accent-2);
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 148px minmax(0, 1fr);
+            min-height: 0;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 18px 16px;
+            background: rgba(36, 40, 59, 0.92);
+            border-right: 1px solid var(--border);
+        }
+
+        .tool-caption {
+            padding: 4px 6px 8px;
+            font-size: 12px;
+            color: var(--text-muted);
+            letter-spacing: 0.2px;
+        }
+
+        .tool-button {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 4px;
+            width: 100%;
+            min-height: 64px;
+            padding: 12px 14px;
+            border: 1px solid transparent;
+            border-radius: 16px;
+            background: transparent;
+            color: var(--text-main);
+            text-align: left;
+            cursor: pointer;
+            transition: 0.2s ease;
+        }
+
+        .tool-button:hover {
+            background: rgba(255, 255, 255, 0.03);
+            border-color: rgba(0, 229, 255, 0.12);
+        }
+
+        .tool-button.active {
+            background: linear-gradient(135deg, rgba(0, 208, 191, 0.18), rgba(0, 229, 255, 0.08));
+            border-color: rgba(0, 229, 255, 0.3);
+            box-shadow: inset 0 0 0 1px rgba(0, 229, 255, 0.06);
+        }
+
+        .tool-name {
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .tool-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .workspace {
+            min-width: 0;
+            min-height: 0;
+            padding: 22px;
+        }
+
+        .waveform-panel {
+            display: grid;
+            grid-template-rows: auto auto minmax(0, 1fr) auto;
+            gap: 16px;
+            min-height: 100%;
+            padding: 18px 20px 16px;
+            border: 1px solid var(--border);
+            border-radius: 22px;
+            background: linear-gradient(180deg, #202538 0%, #191e2e 100%);
+            box-shadow: var(--shadow);
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .panel-title {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .panel-title strong {
+            font-size: 18px;
+        }
+
+        .panel-title span,
+        .panel-metadata {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .ruler {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .ruler span {
+            position: relative;
+            padding-top: 10px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .ruler span::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 1px;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.22);
+        }
+
+        .wave-stage {
+            position: relative;
+            min-height: 0;
+            overflow: hidden;
+            border: 1px solid rgba(0, 229, 255, 0.08);
+            border-radius: 20px;
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.015), rgba(255, 255, 255, 0.01)),
+                var(--bg-panel-soft);
+        }
+
+        .wave-stage::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                linear-gradient(to right, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 80px 100%, 100% 44px;
+            pointer-events: none;
+        }
+
+        .wave-stage::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 50%;
+            height: 1px;
+            background: rgba(0, 229, 255, 0.22);
+            box-shadow: 0 0 18px rgba(0, 229, 255, 0.12);
+            transform: translateY(-50%);
+            pointer-events: none;
+        }
+
+        .wave-selection {
+            position: absolute;
+            top: 16%;
+            right: 22%;
+            bottom: 16%;
+            left: 18%;
+            border: 1px solid rgba(0, 229, 255, 0.44);
+            border-radius: 18px;
+            background: linear-gradient(90deg, rgba(0, 208, 191, 0.11), rgba(0, 229, 255, 0.07));
+            box-shadow: inset 0 0 0 1px rgba(0, 208, 191, 0.12);
+            z-index: 2;
+        }
+
+        .wave-selection::before,
+        .wave-selection::after {
+            content: "";
+            position: absolute;
+            top: -1px;
+            bottom: -1px;
+            width: 3px;
+            border-radius: 999px;
+            background: linear-gradient(180deg, var(--accent), var(--accent-2));
+            box-shadow: 0 0 14px rgba(0, 229, 255, 0.45);
+        }
+
+        .wave-selection::before {
+            left: -1px;
+        }
+
+        .wave-selection::after {
+            right: -1px;
+        }
+
+        .trim-label {
+            position: absolute;
+            top: -34px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            color: var(--accent-2);
+            background: rgba(0, 229, 255, 0.08);
+            border: 1px solid rgba(0, 229, 255, 0.18);
+            white-space: nowrap;
+        }
+
+        .trim-label.start {
+            left: 0;
+            transform: translateX(-10%);
+        }
+
+        .trim-label.end {
+            right: 0;
+            transform: translateX(10%);
+        }
+
+        .wave-svg {
+            position: absolute;
+            inset: 18px 24px;
+            width: calc(100% - 48px);
+            height: calc(100% - 36px);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .wave-area {
+            fill: rgba(0, 208, 191, 0.30);
+            stroke: none;
+        }
+
+        .wave-outline {
+            fill: none;
+            stroke: var(--accent-2);
+            stroke-width: 2.6;
+            stroke-linejoin: round;
+            stroke-linecap: round;
+            filter: drop-shadow(0 0 8px rgba(0, 229, 255, 0.18));
+        }
+
+        .wave-placeholder {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            padding: 0 40px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: 600;
+            color: rgba(236, 240, 255, 0.9);
+            pointer-events: none;
+            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+            z-index: 3;
+        }
+
+        .panel-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .status-text {
+            min-width: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .bottom-bar {
+            display: grid;
+            grid-template-columns: 220px minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 20px;
+            padding: 14px 24px;
+            background: rgba(36, 40, 59, 0.94);
+            border-top: 1px solid var(--border);
+            backdrop-filter: blur(10px);
+        }
+
+        .play-group {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            min-width: 0;
+        }
+
+        .play-button {
+            width: 54px;
+            height: 54px;
+            border: none;
+            border-radius: 50%;
+            color: #021316;
+            font-weight: 700;
+            cursor: pointer;
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            box-shadow: 0 12px 28px rgba(0, 208, 191, 0.18);
+            transition: 0.2s ease;
+        }
+
+        .play-button:hover {
+            transform: translateY(-1px) scale(1.01);
+        }
+
+        .play-details {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 0;
+        }
+
+        .play-caption {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .play-time {
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .center-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 18px;
+            min-width: 0;
+            flex-wrap: wrap;
+        }
+
+        .time-group,
+        .edit-group {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            min-width: 0;
+            flex-wrap: wrap;
+        }
+
+        .time-chip {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: #1b2030;
+        }
+
+        .time-chip label {
+            font-size: 12px;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .time-chip input {
+            width: 108px;
+            height: 34px;
+            padding: 0 10px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 10px;
+            outline: none;
+            color: var(--text-main);
+            background: #111523;
+        }
+
+        .time-chip input:focus {
+            border-color: rgba(0, 229, 255, 0.44);
+            box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.08);
+        }
+
+        .edit-button {
+            height: 36px;
+            padding: 0 14px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-main);
+            background: #1b2030;
+            cursor: pointer;
+            transition: 0.2s ease;
+        }
+
+        .edit-button:hover {
+            color: var(--accent-2);
+            border-color: rgba(0, 229, 255, 0.34);
+        }
+
+        .export-button {
+            min-width: 132px;
+        }
+
+        @media (max-width: 1120px) {
+            body {
+                min-width: 860px;
+            }
+
+            .top-bar,
+            .bottom-bar {
+                padding-left: 18px;
+                padding-right: 18px;
+            }
+
+            .main-layout {
+                grid-template-columns: 136px minmax(0, 1fr);
+            }
+
+            .workspace {
+                padding: 18px;
+            }
+
+            .bottom-bar {
+                grid-template-columns: 200px minmax(0, 1fr) auto;
+                gap: 16px;
+            }
+
+            .time-chip input {
+                width: 92px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-shell">
+        <header class="top-bar">
+            <div class="brand">
+                <div class="brand-title">轻量级音频编辑器</div>
+                <div class="brand-subtitle">Dark UI Prototype · Frontend Layout Only</div>
+            </div>
+
+            <div class="file-summary" title="当前尚未接入真实音频文件，仅为界面占位状态">
+                <span class="file-summary-label">文件操作</span>
+                <span class="file-summary-text">当前工程：未加载音频文件 · 可先通过“导入音频”按钮接入后续流程</span>
+            </div>
+
+            <button class="action-button primary" type="button" onclick="handleImportAudio()">
+                导入音频
+            </button>
+        </header>
+
+        <main class="main-layout">
+            <aside class="sidebar">
+                <div class="tool-caption">主编辑入口</div>
+
+                <button class="tool-button active" type="button" data-tool="import" onclick="handleImportAudio()">
+                    <span class="tool-name">导入音频</span>
+                    <span class="tool-desc">载入素材文件</span>
+                </button>
+
+                <button class="tool-button" type="button" data-tool="volume" onclick="handleVolumeAdjust()">
+                    <span class="tool-name">调整音量</span>
+                    <span class="tool-desc">增益与平衡</span>
+                </button>
+
+                <button class="tool-button" type="button" data-tool="speed" onclick="handleSpeedChange()">
+                    <span class="tool-name">变速</span>
+                    <span class="tool-desc">快放或慢放</span>
+                </button>
+
+                <button class="tool-button" type="button" data-tool="merge" onclick="handleMergeAudio()">
+                    <span class="tool-name">合并音频</span>
+                    <span class="tool-desc">片段拼接</span>
+                </button>
+            </aside>
+
+            <section class="workspace">
+                <div class="waveform-panel">
+                    <div class="panel-header">
+                        <div class="panel-title">
+                            <strong>波形视图占位区域</strong>
+                            <span>后续可在这里接入真实音频波形、播放头与修剪逻辑</span>
+                        </div>
+                        <div class="panel-metadata">项目尺寸会随着窗口拉伸自适应扩展</div>
+                    </div>
+
+                    <div class="ruler" aria-hidden="true">
+                        <span>00:00</span>
+                        <span>00:15</span>
+                        <span>00:30</span>
+                        <span>00:45</span>
+                        <span>01:00</span>
+                        <span>01:15</span>
+                    </div>
+
+                    <div class="wave-stage">
+                        <svg class="wave-svg" viewBox="0 0 1200 320" preserveAspectRatio="none" aria-hidden="true">
+                            <polygon class="wave-area" points="32,160.0 32.0,137.9 68.6,108.5 105.3,128.7 141.9,97.4 178.6,119.5 215.2,90.1 251.9,132.4 288.5,104.8 325.2,115.8 361.8,93.8 398.5,134.2 435.1,106.6 471.7,123.2 508.4,86.4 545.0,126.9 581.7,99.3 618.3,130.6 655.0,82.7 691.6,117.7 728.3,102.0 764.9,136.1 801.5,91.0 838.2,121.4 874.8,95.6 911.5,131.5 948.1,105.7 984.8,125.0 1021.4,88.2 1058.1,118.6 1094.7,103.0 1131.4,135.2 1168.0,110.3 1168,160.0 1168.0,209.7 1131.4,184.8 1094.7,217.0 1058.1,201.4 1021.4,231.8 984.8,195.0 948.1,214.3 911.5,188.5 874.8,224.4 838.2,198.6 801.5,229.0 764.9,183.9 728.3,218.0 691.6,202.3 655.0,237.3 618.3,189.4 581.7,220.7 545.0,193.1 508.4,233.6 471.7,196.8 435.1,213.4 398.5,185.8 361.8,226.2 325.2,204.2 288.5,215.2 251.9,187.6 215.2,229.9 178.6,200.5 141.9,222.6 105.3,191.3 68.6,211.5 32.0,182.1"></polygon>
+                            <polyline class="wave-outline" points="32.0,137.9 68.6,108.5 105.3,128.7 141.9,97.4 178.6,119.5 215.2,90.1 251.9,132.4 288.5,104.8 325.2,115.8 361.8,93.8 398.5,134.2 435.1,106.6 471.7,123.2 508.4,86.4 545.0,126.9 581.7,99.3 618.3,130.6 655.0,82.7 691.6,117.7 728.3,102.0 764.9,136.1 801.5,91.0 838.2,121.4 874.8,95.6 911.5,131.5 948.1,105.7 984.8,125.0 1021.4,88.2 1058.1,118.6 1094.7,103.0 1131.4,135.2 1168.0,110.3"></polyline>
+                            <polyline class="wave-outline" points="32.0,182.1 68.6,211.5 105.3,191.3 141.9,222.6 178.6,200.5 215.2,229.9 251.9,187.6 288.5,215.2 325.2,204.2 361.8,226.2 398.5,185.8 435.1,213.4 471.7,196.8 508.4,233.6 545.0,193.1 581.7,220.7 618.3,189.4 655.0,237.3 691.6,202.3 728.3,218.0 764.9,183.9 801.5,229.0 838.2,198.6 874.8,224.4 911.5,188.5 948.1,214.3 984.8,195.0 1021.4,231.8 1058.1,201.4 1094.7,217.0 1131.4,184.8 1168.0,209.7"></polyline>
+                        </svg>
+
+                        <div class="wave-selection">
+                            <span class="trim-label start">起点 00:12.4</span>
+                            <span class="trim-label end">终点 00:38.9</span>
+                        </div>
+
+                        <div class="wave-placeholder">
+                            音频波形显示区域（此处随窗口拉伸）
+                        </div>
+                    </div>
+
+                    <div class="panel-footer">
+                        <span>提示：当前为纯界面原型，尚未接入真实音频数据与底层处理逻辑。</span>
+                        <span id="status-text" class="status-text">最近动作：等待操作</span>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="bottom-bar">
+            <div class="play-group">
+                <button class="play-button" type="button" onclick="handlePlay()">播放</button>
+                <div class="play-details">
+                    <span class="play-caption">预览播放</span>
+                    <span class="play-time">00:12.4 / 02:18.6</span>
+                </div>
+            </div>
+
+            <div class="center-controls">
+                <div class="time-group">
+                    <div class="time-chip">
+                        <label for="start-time">起始时间</label>
+                        <input id="start-time" type="text" value="00:12.4">
+                    </div>
+
+                    <div class="time-chip">
+                        <label for="end-time">结束时间</label>
+                        <input id="end-time" type="text" value="00:38.9">
+                    </div>
+                </div>
+
+                <div class="edit-group">
+                    <button class="edit-button" type="button" onclick="handleCut()">剪切</button>
+                    <button class="edit-button" type="button" onclick="handleSplit()">分割</button>
+                    <button class="edit-button" type="button" onclick="handleUndo()">撤销</button>
+                    <button class="edit-button" type="button" onclick="handleRedo()">重做</button>
+                </div>
+            </div>
+
+            <button class="action-button primary export-button" type="button" onclick="handleExport()">
+                导出保存
+            </button>
+        </footer>
+    </div>
+
+    <script>
+        const statusText = document.getElementById("status-text");
+
+        function logAction(message) {
+            console.log(message);
+            statusText.textContent = `最近动作：${message}`;
+        }
+
+        function setActiveTool(toolName) {
+            document.querySelectorAll(".tool-button").forEach((button) => {
+                button.classList.toggle("active", button.dataset.tool === toolName);
+            });
+        }
+
+        function handleImportAudio() {
+            setActiveTool("import");
+            logAction("触发：导入音频");
+        }
+
+        function handleVolumeAdjust() {
+            setActiveTool("volume");
+            logAction("触发：调整音量面板");
+        }
+
+        function handleSpeedChange() {
+            setActiveTool("speed");
+            logAction("触发：变速面板");
+        }
+
+        function handleMergeAudio() {
+            setActiveTool("merge");
+            logAction("触发：合并音频面板");
+        }
+
+        function handlePlay() {
+            logAction("触发：播放预览");
+        }
+
+        function handleCut() {
+            logAction("触发：剪切音频片段");
+        }
+
+        function handleSplit() {
+            logAction("触发：分割音频片段");
+        }
+
+        function handleUndo() {
+            logAction("触发：撤销操作");
+        }
+
+        function handleRedo() {
+            logAction("触发：重做操作");
+        }
+
+        function handleExport() {
+            logAction("触发：导出保存");
+        }
+    </script>
+</body>
+</html>

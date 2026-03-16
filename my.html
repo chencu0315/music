@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>轻量音频剪辑器 - 界面原型 (优化版)</title>
+    <!-- 引入专业的开源图标库 Lucide -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* 基础重置与深色主题变量 */
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+        :root {
+            --bg-dark: #0f111a;      /* 最深背景 */
+            --panel-bg: #1a1d2d;     /* 面板背景 */
+            --panel-hover: #24283b;  /* 面板悬浮 */
+            --primary: #00d0bf;      /* 青色高亮 */
+            --primary-hover: #00e6d3;/* 青色高亮(亮) */
+            --text-main: #e0e0e0;    /* 主文字 */
+            --text-muted: #8a8d9e;   /* 次要文字 */
+            --border-color: #2a2f4c; /* 边框颜色 */
+            --danger: #ff4757;       /* 危险/删除颜色 */
+        }
+        
+        body { 
+            background-color: var(--bg-dark); 
+            color: var(--text-main); 
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            overflow: hidden; 
+        }
+        
+        /* --- 通用组件 --- */
+        kbd {
+            background-color: #12141d;
+            border: 1px solid var(--border-color);
+            border-radius: 3px;
+            padding: 2px 5px;
+            font-size: 10px;
+            font-family: monospace;
+            color: var(--text-muted);
+            margin-left: 6px;
+        }
+
+        .icon-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: all 0.2s;
+            padding: 6px;
+        }
+        .icon-btn:hover { background-color: var(--panel-hover); color: var(--text-main); }
+        .icon-btn.active { color: var(--primary); background-color: rgba(0, 208, 191, 0.1); }
+
+        /* --- 顶部导航栏 --- */
+        .top-bar { 
+            height: 56px; 
+            background-color: var(--panel-bg); 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between; 
+            padding: 0 20px; 
+            border-bottom: 1px solid var(--border-color); 
+        }
+        .logo { font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px; letter-spacing: 0.5px; }
+        .logo i { color: var(--primary); }
+        
+        /* 撤销重做控制区 */
+        .history-controls {
+            display: flex;
+            gap: 4px;
+            background-color: var(--bg-dark);
+            padding: 4px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-import { 
+            background-color: transparent; 
+            border: 1px solid var(--primary); 
+            color: var(--primary); 
+            padding: 6px 14px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-size: 13px; 
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: 0.2s; 
+        }
+        .btn-import:hover { background-color: var(--primary); color: #000; }
+
+        /* --- 主体内容区 --- */
+        .main-container { display: flex; flex: 1; overflow: hidden; }
+
+        /* 左侧工具栏 */
+        .sidebar { 
+            width: 72px; 
+            background-color: var(--panel-bg); 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            padding-top: 20px; 
+            gap: 16px; 
+            border-right: 1px solid var(--border-color); 
+        }
+        .tool-btn { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            gap: 6px; 
+            color: var(--text-muted); 
+            cursor: pointer; 
+            font-size: 11px; 
+            transition: 0.2s; 
+            width: 56px;
+            height: 56px;
+            justify-content: center;
+            border-radius: 8px;
+        }
+        .tool-btn:hover { background-color: var(--panel-hover); color: var(--text-main); }
+        .tool-btn.active { color: var(--primary); background-color: rgba(0, 208, 191, 0.1); }
+
+        /* 中央画布区 */
+        .canvas-area { 
+            flex: 1; 
+            display: flex; 
+            flex-direction: column; 
+            background-color: var(--bg-dark);
+        }
+
+        /* 快捷操作栏 (新增) */
+        .action-toolbar {
+            height: 48px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            gap: 16px;
+            background-color: var(--panel-bg);
+        }
+        
+        .action-group {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding-right: 16px;
+            border-right: 1px solid var(--border-color);
+        }
+        .action-group:last-child { border-right: none; }
+
+        .action-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-main);
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: 0.2s;
+        }
+        .action-btn:hover { background-color: var(--panel-hover); border-color: var(--border-color); }
+        .action-btn i { width: 16px; height: 16px; color: var(--text-muted); }
+        .action-btn:hover i { color: var(--text-main); }
+        .action-btn.danger:hover i { color: var(--danger); }
+        
+        /* 缩放控制 */
+        .zoom-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: auto; /* 推到最右侧 */
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+        .zoom-slider {
+            width: 100px;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+
+        /* 波形显示区 */
+        .waveform-container {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+        }
+        
+        .waveform-mockup { 
+            width: 100%; 
+            height: 240px; 
+            background-color: #171a26; 
+            border-radius: 8px; 
+            position: relative; 
+            display: flex; 
+            align-items: center; 
+            border: 1px solid var(--border-color); 
+            overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+        }
+        
+        /* 模拟的音频波形 (使用渐变背景模拟复杂波形) */
+        .wave-pattern {
+            width: 100%;
+            height: 60%;
+            background: repeating-linear-gradient(
+                90deg,
+                var(--primary) 0%,
+                var(--primary) 2px,
+                transparent 2px,
+                transparent 4px
+            );
+            opacity: 0.6;
+            position: absolute;
+            mask-image: linear-gradient(to bottom, transparent, black 50%, transparent);
+            -webkit-mask-image: linear-gradient(to bottom, transparent, black 50%, transparent);
+        }
+        
+        /* 模拟的修剪选区 */
+        .trim-region { 
+            position: absolute; 
+            left: 20%; 
+            right: 40%; 
+            height: 100%; 
+            background-color: rgba(0, 208, 191, 0.15); 
+            border-left: 2px solid var(--primary); 
+            border-right: 2px solid var(--primary); 
+            cursor: pointer; 
+            z-index: 10;
+        }
+        
+        /* 选区控制手柄 */
+        .trim-handle {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 12px;
+            height: 30px;
+            background-color: var(--primary);
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: ew-resize;
+        }
+        .trim-handle.left { left: -6px; }
+        .trim-handle.right { right: -6px; }
+        .trim-handle::after { content: ''; width: 2px; height: 14px; background: #000; opacity: 0.5; }
+
+        /* 播放头 (红线) */
+        .playhead {
+            position: absolute;
+            left: 35%;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: #ffca28;
+            z-index: 20;
+            box-shadow: 0 0 5px rgba(255, 202, 40, 0.5);
+        }
+        .playhead::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -4px;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 6px solid #ffca28;
+        }
+
+        /* --- 底部控制台 --- */
+        .bottom-bar { 
+            height: 70px; 
+            background-color: var(--panel-bg); 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between; 
+            padding: 0 24px; 
+            border-top: 1px solid var(--border-color); 
+        }
+        
+        .play-controls { display: flex; align-items: center; gap: 16px; }
+        
+        .btn-play { 
+            width: 44px; 
+            height: 44px; 
+            background-color: var(--primary); 
+            color: #000;
+            border-radius: 50%; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            cursor: pointer; 
+            transition: 0.2s; 
+            border: none;
+        }
+        .btn-play:hover { background-color: var(--primary-hover); transform: scale(1.05); }
+        .btn-play i { fill: #000; margin-left: 2px; } /* 稍微偏移让播放图标居中 */
+
+        .time-display { font-size: 15px; font-family: monospace; color: var(--text-main); letter-spacing: 1px; }
+        .time-display span { color: var(--text-muted); }
+        
+        /* 中间参数微调区 */
+        .param-controls { display: flex; gap: 12px; align-items: center; background: #12141d; padding: 6px 16px; border-radius: 8px; border: 1px solid var(--border-color); }
+        .param-group { display: flex; align-items: center; gap: 8px;}
+        .param-group label { color: var(--text-muted); font-size: 12px; }
+        .param-box { 
+            background: var(--panel-bg); 
+            border: 1px solid var(--border-color); 
+            padding: 4px 8px; 
+            border-radius: 4px; 
+            font-family: monospace; 
+            font-size: 13px; 
+            color: var(--text-main); 
+            cursor: text;
+        }
+        
+        /* 保存按钮 */
+        .btn-export { 
+            background-color: var(--text-main); 
+            color: #000; 
+            border: none; 
+            padding: 8px 24px; 
+            border-radius: 20px; 
+            font-weight: 600; 
+            cursor: pointer; 
+            font-size: 13px; 
+            transition: 0.2s; 
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-export:hover { background-color: #fff; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(255,255,255,0.1); }
+    </style>
+</head>
+<body>
+
+    <!-- 顶部导航 -->
+    <div class="top-bar">
+        <div class="logo"><i data-lucide="audio-lines"></i> 轻量音频剪辑</div>
+        
+        <!-- 撤销/重做 -->
+        <div class="history-controls">
+            <button class="icon-btn" title="撤销 (Ctrl+Z)">
+                <i data-lucide="undo-2"></i>
+            </button>
+            <button class="icon-btn" title="重做 (Ctrl+Y 或 Ctrl+Shift+Z)">
+                <i data-lucide="redo-2"></i>
+            </button>
+        </div>
+
+        <button class="btn-import">
+            <i data-lucide="upload" style="width: 16px; height: 16px;"></i> 导入音频
+        </button>
+    </div>
+
+    <!-- 主体区域 -->
+    <div class="main-container">
+        <!-- 左侧全局工具 -->
+        <div class="sidebar">
+            <div class="tool-btn"><i data-lucide="mouse-pointer-2"></i>选择</div>
+            <div class="tool-btn active"><i data-lucide="scissors"></i>修剪</div>
+            <div class="tool-btn"><i data-lucide="volume-2"></i>音量</div>
+            <div class="tool-btn"><i data-lucide="timer"></i>变速</div>
+            <div class="tool-btn"><i data-lucide="link"></i>合并</div>
+        </div>
+
+        <!-- 右侧画布区 -->
+        <div class="canvas-area">
+            
+            <!-- 快捷操作栏 (剪切、复制、粘贴等) -->
+            <div class="action-toolbar">
+                <div class="action-group">
+                    <button class="action-btn" title="分割选中区域">
+                        <i data-lucide="split"></i> 分割 <kbd>S</kbd>
+                    </button>
+                </div>
+                
+                <div class="action-group">
+                    <button class="action-btn" title="剪切">
+                        <i data-lucide="scissors-line-dashed"></i> 剪切 <kbd>Ctrl+X</kbd>
+                    </button>
+                    <button class="action-btn" title="复制">
+                        <i data-lucide="copy"></i> 复制 <kbd>Ctrl+C</kbd>
+                    </button>
+                    <button class="action-btn" title="粘贴">
+                        <i data-lucide="clipboard-paste"></i> 粘贴 <kbd>Ctrl+V</kbd>
+                    </button>
+                </div>
+
+                <div class="action-group">
+                    <button class="action-btn danger" title="删除选中片段">
+                        <i data-lucide="trash-2"></i> 删除 <kbd>Del</kbd>
+                    </button>
+                </div>
+
+                <!-- 缩放控制 -->
+                <div class="zoom-controls">
+                    <i data-lucide="zoom-out" style="width: 16px; height: 16px;"></i>
+                    <input type="range" class="zoom-slider" min="1" max="100" value="50" title="缩放波形 (Alt+滚轮)">
+                    <i data-lucide="zoom-in" style="width: 16px; height: 16px;"></i>
+                </div>
+            </div>
+
+            <!-- 波形可视化区 -->
+            <div class="waveform-container">
+                <div style="margin-bottom: 12px; color: var(--text-muted); font-size: 13px; display: flex; justify-content: space-between;">
+                    <span>audio_track_01.mp3</span>
+                    <span>128 kbps • 44.1 kHz</span>
+                </div>
+                
+                <div class="waveform-mockup">
+                    <!-- 波形纹理 -->
+                    <div class="wave-pattern"></div>
+                    
+                    <!-- 播放指示线 -->
+                    <div class="playhead"></div>
+
+                    <!-- 选中/修剪区域 -->
+                    <div class="trim-region">
+                        <div class="trim-handle left"></div>
+                        <div class="trim-handle right"></div>
+                    </div>
+                </div>
+                
+                <!-- 时间刻度模拟 -->
+                <div style="display: flex; justify-content: space-between; margin-top: 8px; color: var(--text-muted); font-size: 11px; font-family: monospace;">
+                    <span>00:00</span>
+                    <span>00:02</span>
+                    <span>00:04</span>
+                    <span>00:06</span>
+                    <span>00:08</span>
+                    <span>00:10</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部控制与参数栏 -->
+    <div class="bottom-bar">
+        <div class="play-controls">
+            <button class="icon-btn" title="跳到开头 (Home)"><i data-lucide="skip-back"></i></button>
+            <button class="btn-play" title="播放/暂停 (空格键)">
+                <i data-lucide="play"></i>
+            </button>
+            <button class="icon-btn" title="跳到结尾 (End)"><i data-lucide="skip-forward"></i></button>
+            <div class="time-display">00:01.20 <span>/ 00:06.25</span></div>
+        </div>
+        
+        <!-- 精确时间调节 -->
+        <div class="param-controls">
+            <div class="param-group">
+                <label>选区起点</label>
+                <div class="param-box" contenteditable="true">00:01.20</div>
+            </div>
+            <div class="param-group">
+                <label>选区终点</label>
+                <div class="param-box" contenteditable="true">00:03.55</div>
+            </div>
+            <div class="param-group">
+                <label>持续时间</label>
+                <div class="param-box" style="color: var(--primary); border-color: transparent; background: transparent;">00:02.35</div>
+            </div>
+        </div>
+
+        <button class="btn-export">
+            导出 <i data-lucide="download" style="width: 16px; height: 16px;"></i>
+        </button>
+    </div>
+
+    <!-- 初始化图标 -->
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

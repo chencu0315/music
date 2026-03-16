@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>轻量音频剪辑器</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+        :root {
+            --bg-dark: #0f111a;
+            --panel-bg: #1a1d2d;
+            --panel-hover: #24283b;
+            --primary: #00d0bf;
+            --primary-hover: #00e6d3;
+            --text-main: #e0e0e0;
+            --text-muted: #8a8d9e;
+            --border-color: #2a2f4c;
+            --danger: #ff4757;
+            --warning: #ffca28;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        kbd {
+            background-color: #12141d;
+            border: 1px solid var(--border-color);
+            border-radius: 3px;
+            padding: 2px 5px;
+            font-size: 10px;
+            font-family: monospace;
+            color: var(--text-muted);
+            margin-left: 6px;
+        }
+
+        .icon-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: all 0.2s;
+            padding: 6px;
+        }
+        .icon-btn:hover { background-color: var(--panel-hover); color: var(--text-main); }
+        .icon-btn:disabled,
+        .action-btn:disabled,
+        .mini-btn:disabled,
+        .btn-import:disabled,
+        .btn-export:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .history-controls .icon-btn {
+            padding: 6px 10px;
+            gap: 6px;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .history-controls .icon-btn span {
+            font-size: 12px;
+            line-height: 1;
+        }
+
+        .history-controls .icon-btn:disabled {
+            opacity: 0.72;
+        }
+
+        .top-bar {
+            height: 56px;
+            background-color: var(--panel-bg);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .logo { font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px; letter-spacing: 0.5px; }
+        .logo i { color: var(--primary); }
+
+        .history-controls {
+            display: flex;
+            gap: 4px;
+            background-color: var(--bg-dark);
+            padding: 4px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-import {
+            background-color: transparent;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: 0.2s;
+        }
+        .btn-import:hover { background-color: var(--primary); color: #000; }
+
+        .main-container { display: flex; flex: 1; overflow: hidden; }
+
+        .sidebar {
+            width: 72px;
+            background-color: var(--panel-bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 20px;
+            gap: 16px;
+            border-right: 1px solid var(--border-color);
+        }
+        .tool-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 11px;
+            transition: 0.2s;
+            width: 56px;
+            height: 56px;
+            justify-content: center;
+            border-radius: 8px;
+        }
+        .tool-btn:hover { background-color: var(--panel-hover); color: var(--text-main); }
+        .tool-btn.active { color: var(--primary); background-color: rgba(0, 208, 191, 0.1); }
+
+        .canvas-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-dark);
+        }
+
+        .action-toolbar {
+            height: 48px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            gap: 16px;
+            background-color: var(--panel-bg);
+        }
+
+        .action-group {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding-right: 16px;
+            border-right: 1px solid var(--border-color);
+        }
+        .action-group:last-child { border-right: none; }
+
+        .action-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-main);
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: 0.2s;
+        }
+        .action-btn:hover { background-color: var(--panel-hover); border-color: var(--border-color); }
+        .action-btn i { width: 16px; height: 16px; color: var(--text-muted); }
+        .action-btn:hover i { color: var(--text-main); }
+        .action-btn.danger:hover i { color: var(--danger); }
+
+        .wave-help {
+            margin-left: auto;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .param-slider {
+            accent-color: var(--primary);
+            cursor: pointer;
+            width: 180px;
+        }
+
+        .waveform-container {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+        }
+
+        .waveform-header {
+            margin-bottom: 12px;
+            color: var(--text-muted);
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .waveform-mockup {
+            width: 100%;
+            height: 260px;
+            background-color: #171a26;
+            border-radius: 8px;
+            position: relative;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        #waveform {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            cursor: pointer;
+        }
+
+        #waveform.dragging-timeline {
+            cursor: grabbing;
+        }
+
+        .wave-empty {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            font-size: 14px;
+            letter-spacing: 0.5px;
+            z-index: 0;
+            background:
+                linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0)),
+                repeating-linear-gradient(
+                    90deg,
+                    rgba(0, 208, 191, 0.35) 0,
+                    rgba(0, 208, 191, 0.35) 2px,
+                    transparent 2px,
+                    transparent 6px
+                );
+            mask-image: linear-gradient(to bottom, transparent, black 50%, transparent);
+            -webkit-mask-image: linear-gradient(to bottom, transparent, black 50%, transparent);
+        }
+        .wave-empty.hidden { display: none; }
+
+        #waveform ::part(scroll) {
+            overflow-x: hidden !important;
+            overflow-y: hidden !important;
+        }
+
+        #waveform ::part(region) {
+            background:
+                linear-gradient(180deg, rgba(255, 213, 79, 0.34), rgba(255, 213, 79, 0.26));
+            border-left: 2px solid #ffd54f;
+            border-right: 2px solid #ffd54f;
+            box-shadow:
+                inset 0 0 0 1px rgba(255, 213, 79, 0.28),
+                inset 0 0 30px rgba(255, 213, 79, 0.16);
+        }
+
+        #waveform ::part(region-handle-left),
+        #waveform ::part(region-handle-right) {
+            width: 14px !important;
+            height: 40px !important;
+            top: 50% !important;
+            background: linear-gradient(180deg, #ffe082 0%, #ffca28 100%) !important;
+            border: 2px solid rgba(15, 17, 26, 0.9) !important;
+            border-radius: 999px !important;
+            box-shadow:
+                0 0 0 2px rgba(255, 213, 79, 0.22),
+                0 6px 16px rgba(0, 0, 0, 0.35) !important;
+            opacity: 1 !important;
+            z-index: 6 !important;
+            cursor: ew-resize !important;
+        }
+
+        #waveform ::part(region-handle-left) {
+            left: 0 !important;
+            transform: translate(-50%, -50%) !important;
+        }
+
+        #waveform ::part(region-handle-right) {
+            right: 0 !important;
+            transform: translate(50%, -50%) !important;
+        }
+
+        #waveform ::part(cursor):before {
+            background-color: var(--warning);
+            width: 2px;
+        }
+
+        .guide-row {
+            margin-top: 12px;
+            display: flex;
+            gap: 16px;
+            color: var(--text-muted);
+            font-size: 12px;
+            flex-wrap: wrap;
+        }
+
+        .status-text {
+            margin-top: 10px;
+            color: var(--text-muted);
+            font-size: 12px;
+            min-height: 18px;
+        }
+
+        .bottom-bar {
+            min-height: 78px;
+            background-color: var(--panel-bg);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 10px 24px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .play-controls { display: flex; align-items: center; gap: 16px; }
+
+        .btn-play {
+            width: 44px;
+            height: 44px;
+            background-color: var(--primary);
+            color: #000;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: 0.2s;
+            border: none;
+        }
+        .btn-play:hover { background-color: var(--primary-hover); transform: scale(1.05); }
+        .btn-play i { fill: #000; margin-left: 1px; }
+
+        .time-display { font-size: 15px; font-family: monospace; color: var(--text-main); letter-spacing: 1px; min-width: 180px; }
+        .time-display span { color: var(--text-muted); }
+
+        .param-controls {
+            display: flex;
+            align-items: center;
+            background: #12141d;
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            min-height: 48px;
+            min-width: 420px;
+            max-width: 60vw;
+            overflow: hidden;
+        }
+
+        .tool-panel {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            flex-wrap: wrap;
+        }
+        .tool-panel.active { display: flex; }
+
+        .param-group { display: flex; align-items: center; gap: 8px; }
+        .param-group label { color: var(--text-muted); font-size: 12px; white-space: nowrap; }
+        .param-box {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 13px;
+            color: var(--text-main);
+            min-width: 82px;
+            text-align: center;
+        }
+        .param-box[contenteditable="true"] { cursor: text; outline: none; }
+
+        .panel-text {
+            color: var(--text-muted);
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .merge-file-name {
+            max-width: 180px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: var(--text-main);
+            font-size: 12px;
+        }
+
+        .mini-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: 0.2s;
+        }
+        .mini-btn:hover { background-color: var(--panel-hover); }
+
+        .btn-export {
+            background-color: var(--text-main);
+            color: #000;
+            border: none;
+            padding: 8px 24px;
+            border-radius: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 13px;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            min-width: 116px;
+            justify-content: center;
+        }
+        .btn-export:hover { background-color: #fff; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(255,255,255,0.1); }
+        .btn-export:disabled { opacity: 0.65; cursor: wait; transform: none; }
+
+        @media (max-width: 1200px) {
+            .bottom-bar {
+                flex-wrap: wrap;
+                height: auto;
+                padding: 12px 20px;
+            }
+
+            .param-controls {
+                order: 3;
+                width: 100%;
+                max-width: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="top-bar">
+        <div class="logo"><i data-lucide="audio-lines"></i> 轻量音频剪辑</div>
+
+        <div class="history-controls">
+            <button class="icon-btn" id="undoButton" type="button" title="撤回上一步操作" disabled>
+                <i data-lucide="undo-2"></i>
+                <span>撤回</span>
+            </button>
+        </div>
+
+        <button class="btn-import" id="importButton" type="button">
+            <i data-lucide="upload" style="width: 16px; height: 16px;"></i> 导入音频
+        </button>
+    </div>
+
+    <div class="main-container">
+        <div class="sidebar">
+            <div class="tool-btn" data-tool="select"><i data-lucide="mouse-pointer-2"></i>选择</div>
+            <div class="tool-btn active" data-tool="trim"><i data-lucide="scissors"></i>修剪</div>
+            <div class="tool-btn" data-tool="volume"><i data-lucide="volume-2"></i>音量</div>
+            <div class="tool-btn" data-tool="speed"><i data-lucide="timer"></i>变速</div>
+            <div class="tool-btn" data-tool="merge"><i data-lucide="link"></i>合并</div>
+        </div>
+
+        <div class="canvas-area">
+            <div class="action-toolbar">
+                <div class="action-group">
+                    <button class="action-btn" id="splitButton" type="button" title="只保留当前手柄选区">
+                        <i data-lucide="split"></i> 分割 <kbd>S</kbd>
+                    </button>
+                </div>
+
+                <div class="wave-help">波形区可拖动时间轴；拖动手柄修剪；靠近时间轴自动吸附；方向键 ±0.1 秒，Shift + 方向键 ±1 秒</div>
+            </div>
+
+            <div class="waveform-container">
+                <div class="waveform-header">
+                    <span id="currentFileName">未导入音频</span>
+                    <span id="audioMeta">等待导入本地音频文件</span>
+                </div>
+
+                <div class="waveform-mockup">
+                    <div id="waveform"></div>
+                    <div class="wave-empty" id="waveEmpty">点击右上角“导入音频”开始</div>
+                </div>
+
+                <div class="guide-row">
+                    <span>① 导入音频后显示完整波形</span>
+                    <span>② 拖动左右手柄设置开始和结束，靠近时间轴会自动吸附</span>
+                    <span>③ 可直接在波形区拖动时间轴，或用方向键左右微调</span>
+                    <span>④ 点击播放试听当前选区，最后导出保存</span>
+                </div>
+
+                <div class="status-text" id="statusText">准备就绪。当前版本已支持修剪、音量、变速、合并与导出。</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bottom-bar">
+        <div class="play-controls">
+            <button class="icon-btn" id="skipStartButton" type="button" title="跳到选区开头"><i data-lucide="skip-back"></i></button>
+            <button class="btn-play" id="playButton" type="button" title="播放 / 暂停（空格键）">
+                <i data-lucide="play"></i>
+            </button>
+            <button class="icon-btn" id="skipEndButton" type="button" title="跳到选区结尾"><i data-lucide="skip-forward"></i></button>
+            <div class="time-display" id="timeDisplay">00:00.00 <span>/ 00:00.00</span></div>
+        </div>
+
+        <div class="param-controls">
+            <div class="tool-panel" data-panel="select">
+                <span class="panel-text">当前版本以修剪、音量、变速、合并、导出为主。</span>
+            </div>
+
+            <div class="tool-panel active" data-panel="trim">
+                <div class="param-group">
+                    <label>选区起点</label>
+                    <div class="param-box" id="selectionStart" contenteditable="true">00:00.00</div>
+                </div>
+                <div class="param-group">
+                    <label>选区终点</label>
+                    <div class="param-box" id="selectionEnd" contenteditable="true">00:00.00</div>
+                </div>
+                <div class="param-group">
+                    <label>持续时间</label>
+                    <div class="param-box" id="selectionDuration" style="color: var(--primary); border-color: transparent; background: transparent;">00:00.00</div>
+                </div>
+                <button class="mini-btn" id="resetTrimButton" type="button">恢复到最初的状态</button>
+            </div>
+
+            <div class="tool-panel" data-panel="volume">
+                <div class="param-group">
+                    <label>预览音量</label>
+                    <input id="volumeSlider" class="param-slider" type="range" min="0" max="200" value="100">
+                    <div class="param-box" id="volumeValue">100%</div>
+                </div>
+            </div>
+
+            <div class="tool-panel" data-panel="speed">
+                <div class="param-group">
+                    <label>播放速度</label>
+                    <input id="speedSlider" class="param-slider" type="range" min="50" max="200" value="100">
+                    <div class="param-box" id="speedValue">1.00x</div>
+                </div>
+            </div>
+
+            <div class="tool-panel" data-panel="merge">
+                <div class="param-group">
+                    <label>待合并文件</label>
+                    <div class="merge-file-name" id="mergeFileName">未选择</div>
+                </div>
+                <button class="mini-btn" id="pickMergeButton" type="button">选择文件</button>
+                <button class="mini-btn" id="clearMergeButton" type="button">清空</button>
+            </div>
+        </div>
+
+        <button class="btn-export" id="exportButton" type="button">
+            导出 <i data-lucide="download" style="width: 16px; height: 16px;"></i>
+        </button>
+    </div>
+
+    <script type="module" src="./renderer.js"></script>
+</body>
+</html>

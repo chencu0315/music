@@ -1,0 +1,59 @@
+{
+  "name": "light-audio-cutter",
+  "version": "1.0.0",
+  "description": "Electron desktop audio cutter",
+  "main": "main.js",
+  "scripts": {
+    "start": "set ELECTRON_RUN_AS_NODE=&& electron .",
+    "dev": "set ELECTRON_RUN_AS_NODE=&& electron .",
+    "pack:dir": "set ELECTRON_RUN_AS_NODE=&& electron-builder --win dir",
+    "pack:installer": "set ELECTRON_RUN_AS_NODE=&& electron-builder --win nsis",
+    "pack:portable": "set ELECTRON_RUN_AS_NODE=&& electron-builder --win portable"
+  },
+  "keywords": [
+    "electron",
+    "audio",
+    "ffmpeg",
+    "wavesurfer"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "ffmpeg-static": "^5.3.0",
+    "fluent-ffmpeg": "^2.1.3",
+    "wavesurfer.js": "^7.12.3"
+  },
+  "devDependencies": {
+    "electron": "^41.0.2",
+    "electron-builder": "^26.8.1"
+  },
+  "build": {
+    "appId": "com.codex.lightaudiocutter",
+    "productName": "Light Audio Cutter",
+    "directories": {
+      "output": "dist"
+    },
+    "asarUnpack": [
+      "node_modules/ffmpeg-static/**"
+    ],
+    "files": [
+      "**/*",
+      "!dist/**",
+      "!.git/**",
+      "!.vscode/**",
+      "!project-plan.md",
+      "!readme.md",
+      "!my.html"
+    ],
+    "win": {
+      "artifactName": "${productName}-${version}-${target}.${ext}",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": true,
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    }
+  }
+}

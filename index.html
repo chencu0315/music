@@ -184,6 +184,7 @@
             transition: 0.2s;
         }
         .action-btn:hover { background-color: var(--panel-hover); border-color: var(--border-color); }
+        .action-btn.danger:hover { color: var(--danger); }
         .action-btn i { width: 16px; height: 16px; color: var(--text-muted); }
         .action-btn:hover i { color: var(--text-main); }
         .action-btn.danger:hover i { color: var(--danger); }
@@ -487,9 +488,12 @@
                     <button class="action-btn" id="splitButton" type="button" title="只保留当前手柄选区">
                         <i data-lucide="split"></i> 分割 <kbd>S</kbd>
                     </button>
+                    <button class="action-btn danger" id="deleteButton" type="button" title="删除当前手柄选区，并将剩余音频自动拼接">
+                        <i data-lucide="trash-2"></i> 删除选区 <kbd>Del</kbd>
+                    </button>
                 </div>
 
-                <div class="wave-help">波形区可拖动时间轴；拖动手柄修剪；靠近时间轴自动吸附；方向键 ±0.1 秒，Shift + 方向键 ±1 秒</div>
+                <div class="wave-help">波形区可拖动时间轴；拖动手柄修剪；靠近时间轴自动吸附；方向键 ±0.1 秒，Shift + 方向键 ±1 秒；按 <kbd>Del</kbd> 删除选区</div>
             </div>
 
             <div class="waveform-container">
@@ -507,10 +511,11 @@
                     <span>① 导入音频后显示完整波形</span>
                     <span>② 拖动左右手柄设置开始和结束，靠近时间轴会自动吸附</span>
                     <span>③ 可直接在波形区拖动时间轴，或用方向键左右微调</span>
-                    <span>④ 点击播放试听当前选区，最后导出保存</span>
+                    <span>④ 可分割保留选区，或删除选区后自动拼接前后内容</span>
+                    <span>⑤ 点击播放试听当前选区，最后导出保存</span>
                 </div>
 
-                <div class="status-text" id="statusText">准备就绪。当前版本已支持修剪、音量、变速、合并与导出。</div>
+                <div class="status-text" id="statusText">准备就绪。当前版本已支持修剪、分割、删除选区、音量、变速、合并与导出。</div>
             </div>
         </div>
     </div>

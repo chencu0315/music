@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('audioAPI', {
   openAudioFile: () => ipcRenderer.invoke('dialog:open-audio-file'),
   openMergeFile: () => ipcRenderer.invoke('dialog:open-merge-file'),
   splitSelection: (payload) => ipcRenderer.invoke('audio:split-selection', payload),
+  deleteSelection: (payload) => ipcRenderer.invoke('audio:delete-selection', payload),
   exportAudio: (payload) => ipcRenderer.invoke('audio:export', payload),
   toFileUrl: (filePath) => pathToFileURL(filePath).href,
   onExportProgress: (callback) => {
@@ -20,5 +21,4 @@ contextBridge.exposeInMainWorld('audioAPI', {
     };
   },
 });
-
 

@@ -8,6 +8,7 @@ const rawFfmpegPath = require('ffmpeg-static');
 
 const USER_DATA_DIR_NAME = 'LightAudioCutter';
 const TEMP_ROOT_NAME = '.light-audio-cutter-temp';
+const SELECTION_EDGE_EPSILON = 0.001;
 const TEXT = {
   cannotCreateTempDir: '\u65e0\u6cd5\u521b\u5efa\u4e34\u65f6\u76ee\u5f55',
   stageStart: '\u5f00\u59cb...',
@@ -20,6 +21,8 @@ const TEXT = {
   mergeFileMissing: '\u5f85\u5408\u5e76\u6587\u4ef6\u4e0d\u5b58\u5728',
   invalidTrimRange: '\u4fee\u526a\u65f6\u95f4\u53c2\u6570\u65e0\u6548',
   trimEndBeforeStart: '\u4fee\u526a\u7ed3\u675f\u65f6\u95f4\u5fc5\u987b\u5927\u4e8e\u5f00\u59cb\u65f6\u95f4',
+  invalidDuration: '\u97f3\u9891\u603b\u65f6\u957f\u53c2\u6570\u65e0\u6548',
+  deleteLeavesNoAudio: '\u5f53\u524d\u9009\u533a\u5df2\u8986\u76d6\u6574\u4e2a\u97f3\u9891\uff0c\u5220\u9664\u540e\u5c06\u6ca1\u6709\u5269\u4f59\u5185\u5bb9',
   invalidVolume: '\u97f3\u91cf\u53c2\u6570\u65e0\u6548',
   invalidSpeed: '\u53d8\u901f\u53c2\u6570\u65e0\u6548',
   exportTitle: '\u5bfc\u51fa\u97f3\u9891',
@@ -282,6 +285,49 @@ async function processSelectionOnly({
   await runFfmpegSilently(command);
 }
 
+async function deleteSelectionAndConcat({
+  sourcePath,
+  outputPath,
+  trimStart,
+  trimEnd,
+  duration,
+}) {
+  const hasHead = trimStart > SELECTION_EDGE_EPSILON;
+  const hasTail = trimEnd < duration - SELECTION_EDGE_EPSILON;
+
+  if (!hasHead && !hasTail) {
+    throw new Error(TEXT.deleteLeavesNoAudio);
+  }
+
+  if (hasHead && hasTail) {
+    const command = ffmpeg(sourcePath)
+      .complexFilter([
+        `[0:a]atrim=start=0:end=${trimStart},asetpts=N/SR/TB[head]`,
+        `[0:a]atrim=start=${trimEnd},asetpts=N/SR/TB[tail]`,
+        '[head][tail]concat=n=2:v=0:a=1[outa]',
+      ])
+      .outputOptions(['-map [outa]', '-vn'])
+      .output(outputPath);
+
+    applyOutputFormat(command, outputPath);
+    await runFfmpegSilently(command);
+    return;
+  }
+
+  const command = ffmpeg(sourcePath)
+    .output(outputPath)
+    .outputOptions('-vn');
+
+  if (hasHead) {
+    command.duration(Math.max(0, trimStart));
+  } else {
+    command.setStartTime(trimEnd);
+  }
+
+  applyOutputFormat(command, outputPath);
+  await runFfmpegSilently(command);
+}
+
 async function mergeAudio({
   processedPrimaryPath,
   mergeFilePath,
@@ -344,6 +390,21 @@ function ensureValidSelectionPayload(payload) {
 
   if (payload.trimEnd <= payload.trimStart) {
     throw new Error(TEXT.trimEndBeforeStart);
+  }
+}
+
+function ensureValidDeletePayload(payload) {
+  ensureValidSelectionPayload(payload);
+
+  if (!Number.isFinite(payload.duration) || payload.duration <= 0) {
+    throw new Error(TEXT.invalidDuration);
+  }
+
+  if (
+    payload.trimStart <= SELECTION_EDGE_EPSILON &&
+    payload.trimEnd >= payload.duration - SELECTION_EDGE_EPSILON
+  ) {
+    throw new Error(TEXT.deleteLeavesNoAudio);
   }
 }
 
@@ -412,6 +473,32 @@ ipcMain.handle('audio:split-selection', async (event, payload) => {
       outputPath,
       trimStart: payload.trimStart,
       trimEnd: payload.trimEnd,
+    });
+
+    return {
+      success: true,
+      filePath: outputPath,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+});
+
+ipcMain.handle('audio:delete-selection', async (_event, payload) => {
+  try {
+    ensureValidDeletePayload(payload);
+
+    const outputPath = await createSessionAudioPath(payload.filePath, 'delete', '.wav');
+
+    await deleteSelectionAndConcat({
+      sourcePath: payload.filePath,
+      outputPath,
+      trimStart: payload.trimStart,
+      trimEnd: payload.trimEnd,
+      duration: payload.duration,
     });
 
     return {

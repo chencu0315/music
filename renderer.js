@@ -20,6 +20,7 @@ import RegionsPlugin from './node_modules/wavesurfer.js/dist/plugins/regions.js'
   const undoStack = [];
   const HANDLE_SNAP_THRESHOLD_PX = 12;
   const MIN_REGION_LENGTH = 0.1;
+  const REGION_EDGE_EPSILON = 0.001;
   const timelineDragState = {
     active: false,
     pointerId: null,
@@ -97,16 +98,24 @@ import RegionsPlugin from './node_modules/wavesurfer.js/dist/plugins/regions.js'
     }
   }
 
-  function setSplitButtonBusy(isBusy, label = '分割') {
-    if (!refs.splitButton) return;
-    refs.splitButton.disabled = isBusy;
-    refs.splitButton.innerHTML = isBusy
-      ? `${label}`
-      : '<i data-lucide="split"></i> 分割 <kbd>S</kbd>';
+  function setSelectionActionButtonsBusy(activeButton = null, label = '处理中...') {
+    const isBusy = Boolean(activeButton);
 
-    if (!isBusy) {
-      initIcons();
+    if (refs.splitButton) {
+      refs.splitButton.disabled = isBusy;
+      refs.splitButton.innerHTML = activeButton === 'split'
+        ? label
+        : '<i data-lucide="split"></i> 分割 <kbd>S</kbd>';
     }
+
+    if (refs.deleteButton) {
+      refs.deleteButton.disabled = isBusy;
+      refs.deleteButton.innerHTML = activeButton === 'delete'
+        ? label
+        : '<i data-lucide="trash-2"></i> 删除选区 <kbd>Del</kbd>';
+    }
+
+    initIcons();
   }
 
   function updateUndoButtonState() {
@@ -286,6 +295,10 @@ import RegionsPlugin from './node_modules/wavesurfer.js/dist/plugins/regions.js'
       trimStart: start,
       trimEnd: end,
     };
+  }
+
+  function appendDisplaySuffix(displayName, suffix) {
+    return displayName.endsWith(suffix) ? displayName : `${displayName}${suffix}`;
   }
 
   function updateTimeDisplay(current = 0) {
@@ -585,7 +598,7 @@ import RegionsPlugin from './node_modules/wavesurfer.js/dist/plugins/regions.js'
     const snapshot = captureSnapshot();
 
     try {
-      setSplitButtonBusy(true, '处理中...');
+      setSelectionActionButtonsBusy('split', '处理中...');
       setStatus('正在分割，只保留当前选区，请稍候...');
 
       const result = await window.audioAPI.splitSelection({
@@ -602,22 +615,77 @@ import RegionsPlugin from './node_modules/wavesurfer.js/dist/plugins/regions.js'
       undoStack.push(snapshot);
       updateUndoButtonState();
 
-      const nextDisplayName = snapshot.displayName.endsWith('（已分割）')
-        ? snapshot.displayName
-        : `${snapshot.displayName}（已分割）`;
+      const nextDisplayName = appendDisplaySuffix(snapshot.displayName, '（已分割）');
 
       await loadAudio(result.filePath, { displayName: nextDisplayName });
       setStatus('分割完成，当前仅保留原选区内容。');
     } catch (error) {
       setStatus(`分割失败：${error.message}`, true);
     } finally {
-      setSplitButtonBusy(false);
+      setSelectionActionButtonsBusy();
+    }
+  }
+
+  async function handleDeleteSelection() {
+    if (!state.filePath) {
+      setStatus('请先导入音频，再执行删除选区。', true);
+      return;
+    }
+
+    if (!window.audioAPI?.deleteSelection) {
+      setStatus('未检测到 Electron 删除接口，请重启应用后再试。', true);
+      return;
+    }
+
+    const { start, end } = getCurrentRegionTimes();
+    if (end <= start) {
+      setStatus('当前选区无效，无法删除。', true);
+      return;
+    }
+
+    const selectionCoversWholeAudio =
+      start <= REGION_EDGE_EPSILON && end >= state.duration - REGION_EDGE_EPSILON;
+
+    if (selectionCoversWholeAudio) {
+      setStatus('当前选区已覆盖整个音频，删除后将没有剩余内容。', true);
+      return;
+    }
+
+    const snapshot = captureSnapshot();
+
+    try {
+      setSelectionActionButtonsBusy('delete', '处理中...');
+      setStatus('正在删除当前选区，并把前后片段自动拼接，请稍候...');
+
+      const result = await window.audioAPI.deleteSelection({
+        filePath: state.filePath,
+        trimStart: start,
+        trimEnd: end,
+        duration: state.duration,
+      });
+
+      if (!result || !result.success || !result.filePath) {
+        setStatus(`删除失败：${result?.error || '未知错误'}`, true);
+        return;
+      }
+
+      undoStack.push(snapshot);
+      updateUndoButtonState();
+
+      const nextDisplayName = appendDisplaySuffix(snapshot.displayName, '（已删除选区）');
+
+      await loadAudio(result.filePath, { displayName: nextDisplayName });
+      setStatus('删除完成，剩余音频已自动拼接。');
+    } catch (error) {
+      setStatus(`删除失败：${error.message}`, true);
+    } finally {
+      setSelectionActionButtonsBusy();
     }
   }
 
   async function handleUndo() {
     if (undoStack.length === 0) {
-      setStatus('当前没有可撤回的分割操作。');
+      setStatus('当前没有可撤回的编辑操作。');
       return;
     }
 
@@ -742,6 +810,7 @@ import RegionsPlugin from './node_modules/wavesurfer.js/dist/plugins/regions.js'
 
     refs.importButton.addEventListener('click', handleImport);
     refs.splitButton.addEventListener('click', handleSplitSelection);
+    refs.deleteButton.addEventListener('click', handleDeleteSelection);
     refs.undoButton.addEventListener('click', handleUndo);
     refs.pickMergeButton.addEventListener('click', handlePickMergeFile);
     refs.clearMergeButton.addEventListener('click', handleClearMergeFile);
@@ -808,6 +877,12 @@ import RegionsPlugin from './node_modules/wavesurfer.js/dist/plugins/regions.js'
         }
       }
 
+      if ((event.key === 'Delete' || event.key === 'Del') && !isEditingText()) {
+        event.preventDefault();
+        handleDeleteSelection();
+        return;
+      }
+
       if (event.code === 'Space' && !isEditingText()) {
         event.preventDefault();
         handlePlayPause();
@@ -834,6 +909,7 @@ import RegionsPlugin from './node_modules/wavesurfer.js/dist/plugins/regions.js'
     refs.undoButton = $('undoButton');
     refs.importButton = $('importButton');
     refs.splitButton = $('splitButton');
+    refs.deleteButton = $('deleteButton');
     refs.waveform = $('waveform');
     refs.currentFileName = $('currentFileName');
     refs.audioMeta = $('audioMeta');
